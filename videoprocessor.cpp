@@ -1,14 +1,11 @@
-#if !defined VIDEO
-
-#define VIDEOPROCESSOR
-
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <cv.h>
-#include <highgui.h>
+
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
 
 #include "videoprocessor.h"
 #include "frameprocessor.h"
@@ -55,14 +52,16 @@ void VideoProcessor::writeNextFrame(cv::Mat& frame) {
 
 // конструктор; устанавливает значения по умолчанию---------------------------------------
 VideoProcessor::VideoProcessor() :
-        callProc(false), delay(40), fnumber(0), stop(false), digits(0), frameToStop(-1), frameProcessor(0) {
+        callProc(false), callAnal(false), callDist(false), callQuared(false),
+        callCompAnal(false), callBlindAnal(false),
+        delay(40), fnumber(0), stop(false), digits(0), frameToStop(-1), frameProcessor(0)
+{
 }
 //----------------------------------------------------------------------------------------
 
 
 // установка имени видеофайла-------------------------------------------------------------
 bool VideoProcessor::setInput(std::string filename) {
-
     fnumber = 0;
     webcam = false;
     //Если ресурс уже был связан с объектом захвата видео
@@ -155,6 +154,38 @@ void VideoProcessor::setFrameAnalyzer(FrameAnalyzer* frameAnalyzerPtr) {
 //----------------------------------------------------------------------------------------
 
 
+// установка объекта класса, который реализует интерфейс Distortion
+void VideoProcessor::setFrameDistortion(Distortion* frameDistortionPtr) {
+    frameDistortion = frameDistortionPtr;
+    callDistortion();
+}
+//----------------------------------------------------------------------------------------
+
+
+// установка объекта класса, который реализует интерфейс Losses
+void VideoProcessor::setFrameQualityReduction(QualityReduction* frameQualityReductionPtr) {
+    frameQualityReduction = frameQualityReductionPtr;
+    callQualityReduction();
+}
+//----------------------------------------------------------------------------------------
+
+
+// установка объекта класса, который реализует интерфейс ComparativeAnalyzer
+void VideoProcessor::setFrameComparativeAnalyzer(ComparativeAnalyzer* frameComparativeAnalyzerPtr) {
+    frameComparativeAnalyzer = frameComparativeAnalyzerPtr;
+    callComparativeAnalyzer();
+}
+//----------------------------------------------------------------------------------------
+
+
+// установка объекта класса, который реализует интерфейс BlindAnalyzer
+void VideoProcessor::setFrameBlindAnalyzer(BlindAnalyzer* frameBlindAnalyzerPtr) {
+    frameBlindAnalyzer = frameBlindAnalyzerPtr;
+    callBlindAnalyzer();
+}
+//----------------------------------------------------------------------------------------
+
+
 // остановка обработки в определенном месте-----------------------------------------------
 void VideoProcessor::stopAtFrameNo(long frame) {
 
@@ -178,6 +209,34 @@ void VideoProcessor::callAnalyzer() {
 //----------------------------------------------------------------------------------------
 
 
+// вызывать метод искажения---------------------------------------------------------------
+void VideoProcessor::callDistortion() {
+    callDist = true;
+}
+//----------------------------------------------------------------------------------------
+
+
+// вызывать метод ухудшения качества-------------------------------------------------------
+void VideoProcessor::callQualityReduction() {
+    callQuared = true;
+}
+//----------------------------------------------------------------------------------------
+
+
+// вызывать метод сравнительного анализа кадров-------------------------------------------
+void VideoProcessor::callComparativeAnalyzer() {
+    callCompAnal = true;
+}
+//----------------------------------------------------------------------------------------
+
+
+// вызывать метод сравнительного анализа кадров-------------------------------------------
+void VideoProcessor::callBlindAnalyzer() {
+    callBlindAnal = true;
+}
+//----------------------------------------------------------------------------------------
+
+
 // не вызывать метод обработки------------------------------------------------------------
 void VideoProcessor::dontCallProcess() {
 
@@ -193,6 +252,34 @@ void VideoProcessor::dontCallAnalyzer() {
 //----------------------------------------------------------------------------------------
 
 
+// не вызывать метод искажения------------------------------------------------------------
+void VideoProcessor::dontCallDistortion() {
+    callDist = false;
+}
+//----------------------------------------------------------------------------------------
+
+
+// не вызывать метод ухудшения качества---------------------------------------------------
+void VideoProcessor::dontCallQualityReduction() {
+    callQuared = false;
+}
+//----------------------------------------------------------------------------------------
+
+
+// не вызывать метод ухудшения качества---------------------------------------------------
+void VideoProcessor::dontCallComparativeAnalyzer() {
+    callCompAnal = false;
+}
+//----------------------------------------------------------------------------------------
+
+
+// не вызывать метод ухудшения качества---------------------------------------------------
+void VideoProcessor::dontCallBlindAnalyzer() {
+    callBlindAnal = false;
+}
+//----------------------------------------------------------------------------------------
+
+
 // выводить необработанные кадры----------------------------------------------------------
 void VideoProcessor::displayInput(std::string wn) {
 
@@ -202,13 +289,35 @@ void VideoProcessor::displayInput(std::string wn) {
 //----------------------------------------------------------------------------------------
 
 
+// выводить неискаженные кадры----------------------------------------------------------
+void VideoProcessor::displayWithoutLosts(std::string wn) {
+    windowNameWithoutLosts = wn;
+    cv::namedWindow(windowNameWithoutLosts);
+}
+//----------------------------------------------------------------------------------------
+
+
 // выводить обработанные кадры------------------------------------------------------------
 void VideoProcessor::displayOutput(std::string wn) {
-
     windowNameOutput = wn;
     cv::namedWindow(windowNameOutput);
 }
 //----------------------------------------------------------------------------------------
+
+
+// выводить результаты анализатора--------------------------------------------------------
+void VideoProcessor::displayAnalyzed(std::string wn) {
+    windowNameAnalyzed = wn;
+    cv::namedWindow(windowNameAnalyzed);
+}
+//----------------------------------------------------------------------------------------
+
+
+void VideoProcessor::displayHistograms(std::string wn1, std::string wn2)
+{
+    windowNameInitialHistogram = wn1;
+    windowNameFinalHistogram = wn2;
+}
 
 
 // не выводить обработанные кадры---------------------------------------------------------
@@ -216,8 +325,17 @@ void VideoProcessor::dontDisplay() {
 
     cv::destroyWindow(windowNameInput);
     cv::destroyWindow(windowNameOutput);
+    cv::destroyWindow(windowNameWithoutLosts);
+    cv::destroyWindow(windowNameAnalyzed);
+    cv::destroyWindow(windowNameInitialHistogram);
+    cv::destroyWindow(windowNameFinalHistogram);
+
     windowNameInput.clear();
     windowNameOutput.clear();
+    windowNameWithoutLosts.clear();
+    windowNameAnalyzed.clear();
+    windowNameInitialHistogram.clear();
+    windowNameFinalHistogram.clear();
 }
 //----------------------------------------------------------------------------------------
 
@@ -366,8 +484,12 @@ bool VideoProcessor::isOpened() {
 // запуск---------------------------------------------------------------------------------
 void VideoProcessor::run() {
 
-    cv::Mat frame;  //текущий кадр
-    cv::Mat output; //обработанный кадр
+    cv::Mat input_frame; //обработанный кадр
+    cv::Mat processed_frame; //изначальный кадр
+    cv::Mat output_frame; //изначальный кадр
+    cv::Mat analyzed_frame; //проанализированный кадр
+    cv::Mat histogram_initial; //гистограмма исходного кадра
+    cv::Mat histogram_final; //гистограмма измененного кадра
 
     // если не установлено устройства захвата
     if (!isOpened())
@@ -377,36 +499,80 @@ void VideoProcessor::run() {
 
     while (!isStopped()) {
 
-        // попотка чтения следующего кадра
-        if (!readNextFrame(frame))
+        // попытка чтения следующего кадра
+        if (!readNextFrame(input_frame))
             break;
 
         // отображение входящего кадра
         if (windowNameInput.length() != 0)
-            cv::imshow(windowNameInput, frame);
+            cv::imshow(windowNameInput, input_frame);
+        // копируем кадры
+
+        processed_frame = input_frame.clone();
+        histogram_initial = input_frame.clone();
+        histogram_final = input_frame.clone();
+
+        /// ------------вызов методов анализа--------------------------
+        if (callAnal) {
+           frameAnalyzer->analyze(input_frame, histogram_initial);
+        }
+        // отображение конечной гистограммы
+        if (windowNameOutput.length() != 0)
+          cv::imshow(windowNameInitialHistogram, histogram_initial);
+        /// -----------------------------------------------------------
 
         // вызов метода обработки
         if (callProc)
         {
-            frameProcessor->process(frame, output);
-            //увеличение счетчика кадров
+           frameProcessor->process(input_frame, processed_frame);
+           //увеличение счетчика кадров
                 fnumber++;
          } else {
-                output = frame;
+                processed_frame = input_frame;
          }
 
-        //вызов метода анализа
-        if (callAnal) {
-            frameAnalyzer->analyze(output);
+        //отображение обработанного кадра без внесения искажений
+        if (windowNameWithoutLosts.length() != 0)
+            cv::imshow(windowNameWithoutLosts, processed_frame);
+
+        //вызов метода ухудшения качества
+        if (callQuared) {
+            frameQualityReduction->process(processed_frame, output_frame);
         }
 
-        // запись кадра
-        if (outputFile.length() != 0)
-            writeNextFrame(output);
+        //вызов метода искажения
+        if (callDist) {
+            frameDistortion->process(output_frame, output_frame);
+        }
+
+        /// ------------вызов методов анализа--------------------------
+        if (callAnal) {
+           frameAnalyzer->analyze(output_frame, histogram_final);
+        }
+        // отображение конечной гистограммы
+        if (windowNameOutput.length() != 0)
+          cv::imshow(windowNameFinalHistogram, histogram_final);
+        /// -----------------------------------------------------------
+
+        analyzed_frame = output_frame.clone();
+
+        if(callCompAnal) {
+            frameComparativeAnalyzer->analyze(input_frame, analyzed_frame);
+        } else {
+           frameBlindAnalyzer->analyze(output_frame, analyzed_frame);
+        }
 
         // отображение обработанного кадра
         if (windowNameOutput.length() != 0)
-            cv::imshow(windowNameOutput, output);
+          cv::imshow(windowNameOutput, output_frame);
+
+        // отображение обработанного кадра
+        if (windowNameAnalyzed.length() != 0)
+          cv::imshow(windowNameAnalyzed, analyzed_frame);
+
+        // запись кадра
+        if (outputFile.length() != 0)
+            writeNextFrame(output_frame);
 
         // задержка
         if (delay >= 0 && cv::waitKey(delay) >= 0)
@@ -416,8 +582,5 @@ void VideoProcessor::run() {
         if (frameToStop >= 0 && getFrameNumber() == frameToStop)
             stopIt();
     }
-
 }
 //----------------------------------------------------------------------------------------
-
-#endif

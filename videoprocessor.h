@@ -6,29 +6,58 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include <cv.h>
-#include <highgui.h>
+
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
 
 #include "frameprocessor.h"
 #include "frameanalyzer.h"
+#include "distortion.h"
+#include "qualityreduction.h"
+#include "comparativeanalyzer.h"
+#include "blindanalyzer.h"
 
 class VideoProcessor {
 
 private:
-    // Объект захвата видео
+    // Объект захвата видеo
     cv::VideoCapture capture;    
     // указатель на класс, реализующий интрефейс FrameProcessor
     FrameProcessor *frameProcessor;
     // указатель на класс, реализующий интрефейс FrameAnalyzer
     FrameAnalyzer *frameAnalyzer;
+    //указатель на класс, реализующий интерфейс QualityReduction
+    QualityReduction *frameQualityReduction;
+    //указатель на класс, реализующий интерфейс Distortion
+    Distortion *frameDistortion;
+    //укащатель на класс, реализующий интерфейс ComparativeAnalyzer
+    ComparativeAnalyzer *frameComparativeAnalyzer;
+    //укащатель на класс, реализующий интерфейс BlindAnalyzer
+    BlindAnalyzer *frameBlindAnalyzer;
     // будет ли вызван метод обработки
     bool callProc;
     // будет ли вызван метод анализа
     bool callAnal;
+    //будет ли вызван метод искажения
+    bool callDist;
+    //будет ли вызван метод ухудшения качества
+    bool callQuared;
+    //будет ли вызван сравнительный анализатор
+    bool callCompAnal;
+    //будет ди вызван метод слепово анализаЫ
+    bool callBlindAnal;
     // Имя окна вывода необработанного видео
     std::string windowNameInput;
     // Имя окна вывода обработанного видео
     std::string windowNameOutput;
+    // Имя окна вывода видео без "потерь"
+    std::string windowNameWithoutLosts;
+    //Имя окна вывода результата работы анализатора
+    std::string  windowNameAnalyzed;
+    //Имя окна вывода исходной гистограммы
+    std::string  windowNameInitialHistogram;
+    //Имя окна вывода результирующей гистограммы
+    std::string  windowNameFinalHistogram;
     // задержка между кадрами
     int delay;
     // количество обработанных кадров
@@ -70,14 +99,29 @@ public:
     bool setOutput(const std::string &filename, const std::string &ext, int numberOfDigits = 3, int startIndex = 0);
     void setFrameProcessor(void (*frameProcessingCallback)(cv::Mat&, cv::Mat&));
     void setFrameProcessor(FrameProcessor* frameProcessorPtr);
+    void setFrameDistortion(Distortion* frameDistortionPtr);
+    void setFrameQualityReduction(QualityReduction* frameQualityReductionPtr);
     void setFrameAnalyzer(FrameAnalyzer* frameAnalyzerPtr);
+    void setFrameComparativeAnalyzer(ComparativeAnalyzer* frameComparativeAnalyzerPtr);
+    void setFrameBlindAnalyzer(BlindAnalyzer* frameBlindAnalyzerPtr);
     void stopAtFrameNo(long frame);
     void callProcess();
     void callAnalyzer();
+    void callDistortion();
+    void callQualityReduction();
+    void callComparativeAnalyzer();
+    void callBlindAnalyzer();
     void dontCallProcess();
     void dontCallAnalyzer();
+    void dontCallDistortion();
+    void dontCallQualityReduction();    
+    void dontCallComparativeAnalyzer();
+    void dontCallBlindAnalyzer();
     void displayInput(std::string wn);
     void displayOutput(std::string wn);
+    void displayWithoutLosts(std::string wn);
+    void displayAnalyzed(std::string wn);
+    void displayHistograms(std::string wn1, std::string wn2);
     void dontDisplay();
     void setDelay(int d);
     long getNumberOfProcessedFrames();

@@ -1,7 +1,8 @@
 #ifndef FRAMEANALYZER_H
 #define FRAMEANALYZER_H
 
-#include <cv.h>
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
 #include <QList>
 
 using namespace cv;
@@ -12,14 +13,13 @@ public:
     FrameAnalyzer();  //конструктор
     virtual ~FrameAnalyzer(); //деструктор
 
-    virtual void analyze(Mat &input)=0; //метод анализа
+    virtual void analyze(Mat &input, Mat &output)=0; //метод анализа
     virtual Mat& getMat(int index); //метод получения кадра с номером index
 
     Mat currentFrame; //текущий кадр
     Mat lastFrame; //предпоследний добавленный кадр
 
-    QList<Mat> frameList; //список кадров
-    virtual void saveList()=0;  //метод сохранения списка
+    QList<Mat> frameList; //список кадров    
 };
 
 #endif // FRAMEANALYZER_H

@@ -1,7 +1,7 @@
 #ifndef FRAMEPROCESSOR_H_
 #define FRAMEPROCESSOR_H_
 
-#include <cv.h>
+#include <opencv/cv.h>
 
 class FrameProcessor {
 public:

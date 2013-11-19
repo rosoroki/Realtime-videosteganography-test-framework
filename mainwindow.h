@@ -16,17 +16,11 @@ public:
     ~MainWindow();
 
 private slots:
-    void on_pushButton_clicked(); //обработчик нажатия на кнопку "НANDLE"
-    void on_pushButton_2_clicked();
+    void on_pushButton_clicked(); //обработчик нажатия на кнопку "НANDLE"      
 
 private:
     Ui::MainWindow *ui;
-//private slots:
-   // void load();
-   // void save();
-   // void search();
-   // void graph();
-    //void on_tabWidget_selected(const QString &arg1);
+    void setupEnvironment();
 };
 
 #endif // MAINWINDOW_H
