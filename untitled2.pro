@@ -7,7 +7,7 @@
 
 QT       += core gui
 
-TARGET = untitled2
+TARGET = videostegotool
 TEMPLATE = app
 
 
@@ -53,5 +53,6 @@ unix:!macx:!symbian: LIBS += -lopencv_highgui
 unix:!macx:!symbian: LIBS += -lopencv_imgproc
 
 OTHER_FILES += \
-    INSTALL.txt \
-    openCVInstall.sh
+    INSTALL \
+    BUILD.sh \
+    TotalInstallScript.sh

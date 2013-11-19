@@ -1,3 +1,5 @@
+cat INSTALL
+# Installing OpenCV
 version="$(wget -q -O - http://sourceforge.net/projects/opencvlibrary/files/opencv-unix | egrep -m1 -o '\"[0-9](\.[0-9])+' | cut -c2-)"
 echo "Installing OpenCV" $version
 mkdir OpenCV
@@ -19,3 +21,17 @@ sudo make install
 sudo sh -c 'echo "/usr/local/lib" > /etc/ld.so.conf.d/opencv.conf'
 sudo ldconfig
 echo "OpenCV" $version "ready to be used"
+
+# Installing qrencode
+echo "Installing libqrencode"
+sudo apt-get -qq install qrencode libqrencode-dev
+echo "QRencode ready to be used"
+
+echo "All Dependenices are installed now!"
+
+# Compiling program
+echo "--------------------------------------------------------------------------------"
+echo "Compiling..."
+qmake
+make
+./videostegotool
