@@ -16,6 +16,8 @@ To install this software, be ready to install additional software:
     4. ffmpeg
     5. qt
 
+Enjoy!
+
 contact me at http://goo.gl/Eyfbxt
 e-mail soroju@gmail.com
 

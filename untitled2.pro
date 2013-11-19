@@ -53,4 +53,5 @@ unix:!macx:!symbian: LIBS += -lopencv_highgui
 unix:!macx:!symbian: LIBS += -lopencv_imgproc
 
 OTHER_FILES += \
-    INSTALL.txt
+    INSTALL.txt \
+    openCVInstall.sh
